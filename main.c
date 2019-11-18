@@ -4,6 +4,9 @@
 #include <stdarg.h>
 #include "libftprintf.h"
 
+
+
+
 typedef struct	s_vars
 {
 	int chars;
@@ -14,6 +17,7 @@ typedef struct	s_vars
 	int prec;
 }				t_vars;
 
+int print_string(char *str, t_vars *elts);
 /*int	params_nbr(const char *format)
 {
 	int counter;
@@ -107,28 +111,23 @@ char *ft_lowercase(char *str)
 	return (str);
 }
 
-void print_padding(t_vars *var, int lenn)
+void print_padding(t_vars *elts, int valid)
 {
-	int i;
-
-	i = 0;
-	if (var->lalign == 0)
+	if (elts->len > 0 && elts->lalign == valid)
 	{
-		while (i < var->len)
-		{
-			ft_putchar_fd(var->padd, 1);
-			i++;
-		}
+		while (elts->len--)
+			ft_putchar_fd(elts->padd, 1);
 	}
-	else
+	if (elts->len > 0 && elts->lalign == valid)
 	{
-		while (i < var->len)
-		{
-			ft_putchar_fd(var->padd, 1);
-			i++;
-		}
+		while (elts->len--)
+			ft_putchar_fd(' ', 1);
 	}
 }
+
+/****************************************************************************************/
+/****************************************************************************************/
+/****************************************************************************************/
 
 int print_char(int c)
 {
@@ -136,10 +135,11 @@ int print_char(int c)
 	return (1);
 }
 
-int print_decimal(int var)
+int print_decimal(int var, t_vars *elts)
 {
-	ft_putnbr_fd(var, 1);
-	return (nbr_length(var, 10));
+	//ft_putnbr_fd(var, 1);
+	print_string(ft_itoa_base(var, 10), elts);
+	return (var > 0 ? nbr_length(var, 10) : nbr_length(var, 10) + 1);
 }
 
 int print_pointer(long long var)
@@ -149,10 +149,24 @@ int print_pointer(long long var)
 	return (nbr_length(var, 16) + 2);
 }
 
-int print_string(char *str)
+int print_string(char *str, t_vars *elts)
 {
-	ft_putstr_fd(str, 1);
-	return ((int)ft_strlen(str));
+	int len;
+	int to_check;
+
+	to_check = elts->len;
+	len = ft_strlen(str);
+	len = len < elts->prec ? len : elts->prec;
+	elts->len -= len;
+	if (elts->prec == -1)
+		elts->prec = INT32_MAX;
+	if (str == NULL)
+		str = "";
+	print_padding(elts, 0);
+	while (*str && elts->prec--)
+		ft_putchar_fd(*str++, 1);
+	print_padding(elts, 1);
+	return ( len > to_check ? len : to_check );
 }
 
 int print_unsigned(unsigned int var)
@@ -203,7 +217,7 @@ int ft_printf(const char *fmt, ...)
 				break ;
 			i++;
 		}
-		if (fmt[i] == '0' && var.lalign) // to verify more
+		if (fmt[i] == '0') //left align the sentence (to verify more)
 		{
 			var.padd = '0';
 			i++;
@@ -221,12 +235,14 @@ int ft_printf(const char *fmt, ...)
 				var.lalign = !var.lalign;
 			}
 		}
-		if (fmt[i] == '.')
+
+		if (fmt[i] == '.') //precision calculation
 		{
-			if (isdigit(fmt[i])) 
+			i++;
+			if (ft_isdigit(fmt[i])) 
 			{
 				var.prec = 0;
-				while(isdigit(fmt[i])) {
+				while(ft_isdigit(fmt[i])) {
 					var.prec = 10 * var.prec + fmt[i] - '0';
 					i++;
 				}
@@ -237,6 +253,7 @@ int ft_printf(const char *fmt, ...)
 			}
 		}
 
+		//absolute verification of the specifier.
 		if (fmt[i] == 'c')
 		{
 			var.chars += print_char(va_arg(arg_ptr, int));
@@ -244,7 +261,7 @@ int ft_printf(const char *fmt, ...)
 		}
 		else if (fmt[i] == 'd' || fmt[i] == 'i')
 		{
-			var.chars += print_decimal(va_arg(arg_ptr, int));
+			var.chars += print_decimal(va_arg(arg_ptr, int), &var);
 			i++;
 		}
 		else if (fmt[i] == 'p')
@@ -254,7 +271,7 @@ int ft_printf(const char *fmt, ...)
 		}
 		else if (fmt[i] == 's')
 		{
-			var.chars += print_string(va_arg(arg_ptr, char *));
+			var.chars += print_string(va_arg(arg_ptr, char *), &var);
 			i++;
 		}
 		else if (fmt[i] == 'u')
@@ -287,8 +304,8 @@ int main()
 {
 	int a = 5;
 	char *str = "hi";
-	int x = ft_printf("%p hello %d it's me%s\n", &a, 13, " ayoub");
-	int y = printf("%p hello ||%10d|| it's me%s\n", &a, 13, " ayoub");
+	int x = ft_printf("|%d|\n",INT32_MAX);
+	int y = printf("|%d|\n",INT32_MAX);
 	printf("%d\n%d\n", x, y);
 	return (0);
 }
