@@ -35,7 +35,7 @@ int print_string(char *str, t_vars *elts);
 	return (counter);
 }*/
 
-int nbr_length(long nb,unsigned int base)
+int nbr_length(long long nb,unsigned int base)
 {
 	int i;
 
@@ -48,7 +48,7 @@ int nbr_length(long nb,unsigned int base)
 	return (i + 1);
 }
 
-char	*ft_itoa_base(long value, int base)
+char	*ft_itoa_base(long long value, int base)
 {
 	int size = nbr_length(value, base);
 	if (base == 10 && value < 0)
@@ -82,6 +82,24 @@ char	*ft_itoa_base(long value, int base)
 	return tab;
 }
 
+void	ft_putunbr_fd(long int n, int fd)
+{
+	unsigned int reste;
+
+	if (n < 0)
+	{
+		ft_putchar_fd('-', fd);
+		n = -n;
+	}
+	if (n / 10 == 0)
+		ft_putchar_fd((n % 10) + 48, fd);
+	if (n / 10 > 0)
+	{
+		reste = n % 10;
+		ft_putnbr_fd(n / 10, fd);
+		ft_putchar_fd(reste + 48, fd);
+	}
+}
 char *ft_lowercase(char *str)
 {
 	int i = 0;
@@ -122,15 +140,46 @@ int print_char(int c)
 	return (1);
 }
 
+/* int print_decimal(long var, t_vars *elts)
+{
+	int len;
+	int to_check;
+	char *str;
+
+	str = ft_itoa_base((int)var, 10);
+	len = ft_strlen(str);
+	if (elts->prec != -1)
+	{
+		elts->padd = '0';
+		elts->lalign = 0;
+		elts->len = elts->prec;
+	}
+	else
+		elts->prec = INT32_MAX;
+	if (str == NULL)
+		str = "";
+	len = len < elts->prec ? len : elts->prec;
+	to_check = elts->len;
+	to_check += (int)var < 0 ? 1 : 0;
+	elts->len -= ((int)var < 0 ? len - 1 : len);
+	if ((int)var < 0 && elts->lalign == 1)
+		ft_putchar_fd(*str++, 1);
+	print_padding(elts, 0);
+	while (*str)
+		ft_putchar_fd(*str++, 1);
+	print_padding(elts, 1);
+	return (len > to_check ? len : to_check);
+	 print_string(ft_itoa_base(var, 10), elts);
+	return (var > 0 ? nbr_length(var, 10) : nbr_length(var, 10) + 1); 
+} */
+
 int shitty_code_for_multiple_flags(char *str, t_vars *elts, char *sign)
 {
+	int i = 0, j = 0, k = 0;
 	int lon = ft_strlen(str);
 	int longueur = 0;
-	int x;
 
-	x = elts->prec;
-	longueur = elts->len > elts->prec ? elts->len : elts->prec;
-	longueur = longueur > lon ? longueur : lon;
+	longueur = elts->len > lon ? elts->len : lon;
 	elts->len -= elts->prec < lon ? lon : elts->prec;
 	elts->len -= (sign ? 1 : 0);
 	elts->prec -= lon;
@@ -144,38 +193,42 @@ int shitty_code_for_multiple_flags(char *str, t_vars *elts, char *sign)
 		ft_putchar_fd(*str++, 1);
 	while (elts->len-- >= 0 && elts->lalign == 1)
 		ft_putchar_fd(' ', 1);
-	if ((lon == longueur || x == longueur) && sign)
+	if (lon == longueur && sign)
 		longueur++;
 	return (longueur);
 }
 
-int to_fix_precision(char *str, size_t *len, t_vars *elts, char *sign)
+int print_decimal(long var, t_vars *elts)
 {
-	elts->len = elts->prec;
-	elts->padd = '0';
-	*len = ft_strlen(str);
-	return (!sign ? 0 : 1);
-}
-
-int print_decimal(long var, t_vars *elts, char *str, int ok)
-{
-	size_t len;
+	int len;
 	int to_check;
+	char *str;
 	char *sign = 0;
 
-	if (ok && (int)var < 0)
+	if ((int)var < 0)
+	{
+		var = -var;
 		sign = "-";
+	}
 	to_check = elts->len;
 	if (elts->prec != -1)
 		to_check = elts->prec;
+	str = ft_itoa_base(var, 10);
 	if (elts->prec != -1 && elts->len != 0) //i hate this ...
 		return (shitty_code_for_multiple_flags(str, elts, sign));
 	len = !sign ? ft_strlen(str) : ft_strlen(str) + 1;
 	if (elts->prec != -1 && elts->len == 0) //fixing the precision thing with zeros
-		to_check += to_fix_precision(str, &len, elts, sign);
+	{
+		elts->len = elts->prec;
+		elts->padd = '0';
+		len = ft_strlen(str);
+		to_check += (!sign ? 0 : 1);
+	}
 	elts->len -= len;
-	if (sign && ft_strlen(str) == len)
-		len++;
+	//printf("\n%d -- %d\n", elts->len, len);
+	/* if (sign)
+		elts->len--; */
+	//if (prefix) elts->len -= 2;
 	if (elts->padd == ' ')
 		print_padding(elts, 0, 0);
 	if (sign)
@@ -188,6 +241,12 @@ int print_decimal(long var, t_vars *elts, char *str, int ok)
 	return (len > to_check ? len : to_check);
 }
 
+int print_pointer(long long var)
+{
+	ft_putstr_fd("0x", 1);
+	ft_putstr_fd(ft_lowercase(ft_itoa_base(var, 16)), 1);
+	return (nbr_length(var, 16) + 2);
+}
 
 int print_string(char *str, t_vars *elts)
 {
@@ -209,27 +268,50 @@ int print_string(char *str, t_vars *elts)
 	return ( len > to_check ? len : to_check );
 }
 
-int print(long var, t_vars *elts, char type)
+int print_unsigned(long var, t_vars *elts)
 {
+	int len;
+	int to_check;
 	char *str;
+	char *sign = 0;
 
-	if (type == 'd' || type == 'i')
+	to_check = elts->len;
+	if (elts->prec != -1)
+		to_check = elts->prec;
+	str = ft_itoa_base((unsigned int)var, 10);
+	if (elts->prec != -1 && elts->len != 0) //i hate this ...
+		return (shitty_code_for_multiple_flags(str, elts, sign));
+	len = !sign ? ft_strlen(str) : ft_strlen(str) + 1;
+	if (elts->prec != -1 && elts->len == 0) //fixing the precision thing with zeros
 	{
-		str = (int)var < 0 ? ft_itoa_base(-(int)var, 10) : ft_itoa_base((int)var, 10);
-		return (print_decimal(var, elts, str, 1));
+		elts->len = elts->prec;
+		elts->padd = '0';
+		len = ft_strlen(str);
+		to_check += (!sign ? 0 : 1);
 	}
-	if (type == 'u')
-		return (print_decimal(var, elts, ft_itoa_base((unsigned int)var, 10), 0));
-	if (type == 'x')
-		return (print_decimal(var, elts, ft_lowercase(ft_itoa_base((unsigned int)var, 16)), 0));
-	if (type == 'X')
-		return (print_decimal(var, elts, ft_itoa_base((unsigned int)var, 16), 0));
-	if (type == 'p')
-	{
-		ft_putstr_fd("0x", 1);
-		return (print_decimal(var, elts, ft_lowercase(ft_itoa_base((long)var, 16)), 0) + 2);
-	}
-	return (0);
+	elts->len -= len;
+	if (elts->padd == ' ')
+		print_padding(elts, 0, 0);
+	if (sign)
+		ft_putchar_fd(*sign, 1);
+	if (elts->padd == '0')
+		print_padding(elts, 0, 0);
+	while (*str)
+		ft_putchar_fd(*str++, 1);
+	print_padding(elts, 1, 0);
+	return (len > to_check ? len : to_check);
+}
+
+int print_smallhex(unsigned int var)
+{
+	ft_putstr_fd(ft_lowercase(ft_itoa_base(var, 16)), 1);
+	return (nbr_length(var, 16));
+}
+
+int print_bighexa(unsigned int var)
+{
+	ft_putstr_fd(ft_itoa_base(var, 16), 1);
+	return (nbr_length(var, 16));
 }
 
 int ft_printf(const char *fmt, ...)
@@ -316,14 +398,34 @@ int ft_printf(const char *fmt, ...)
 			var.chars += print_char(va_arg(arg_ptr, int));
 			i++;
 		}
-		else if (fmt[i] == 'd' || fmt[i] == 'i' || fmt[i] == 'u' || fmt[i] == 'x' || fmt[i] == 'X' || fmt[i] == 'p')
+		else if (fmt[i] == 'd' || fmt[i] == 'i')
 		{
-			var.chars += print(va_arg(arg_ptr, long), &var, fmt[i]);
+			var.chars += print_decimal(va_arg(arg_ptr, int), &var);
+			i++;
+		}
+		else if (fmt[i] == 'p')
+		{
+			var.chars += print_pointer(va_arg(arg_ptr, long long));
 			i++;
 		}
 		else if (fmt[i] == 's')
 		{
 			var.chars += print_string(va_arg(arg_ptr, char *), &var);
+			i++;
+		}
+		else if (fmt[i] == 'u')
+		{
+			var.chars += print_unsigned(va_arg(arg_ptr, unsigned int));
+			i++;
+		}
+		else if (fmt[i] == 'x')
+		{
+			var.chars += print_smallhex(va_arg(arg_ptr, unsigned int));
+			i++;
+		}
+		else if (fmt[i] == 'X')
+		{
+			var.chars += print_bighexa(va_arg(arg_ptr, unsigned int));
 			i++;
 		}
 		else if (fmt[i] == '%')
@@ -344,8 +446,8 @@ int main()
 	while(1)
 	{
 		scanf("%d", &a);
-		int x = ft_printf("|%05.8x|\n",a);
-		int y = printf("|%05.8x|\n",a);
+		int x = ft_printf("|%.0d|\n", a);
+		int y = printf("|%.0d|\n", a);
 		printf("%d\n%d\n", x, y);
 		printf("\n==================\n");
 	}
@@ -354,4 +456,3 @@ int main()
 //cspdiuxX%
 //%011.5d
 //%-10.5d
-//pointer still has some freaking stupid shit ... with flags
